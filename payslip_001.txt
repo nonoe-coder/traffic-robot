@@ -1,0 +1,17 @@
+==============================
+Payslip for Welma Kayanga
+==============================
+Employee ID: 001
+Email: welmakayanga7@gmail.com
+Position: Digital Marketer
+Department: Marketing
+Pay Period: Mar-2025
+Date Issued: 2025-04-05
+Bank Account: 1234567890
+
+--- Salary Details ---
+Basic Salary: $400.00
+Allowances:   $80.00
+Deductions:  -$40.00
+Net Salary:   $440.00
+==============================

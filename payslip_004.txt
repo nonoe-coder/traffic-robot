@@ -1,0 +1,17 @@
+==============================
+Payslip for Nomsa Sibanda
+==============================
+Employee ID: 004
+Email: snomsa2301@gmail.com
+Position: Digital Marketer
+Department: Marketing
+Pay Period: Mar-2025
+Date Issued: 2025-04-05
+Bank Account: 1234567890
+
+--- Salary Details ---
+Basic Salary: $400.00
+Allowances:   $150.00
+Deductions:  -$100.00
+Net Salary:   $450.00
+==============================
