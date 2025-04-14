@@ -1,93 +1,96 @@
 import pandas as pd
-from fpdf import FPDF
 import smtplib
-from email.message import EmailMessage
-import os
+from fpdf import FPDF
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
-EMAIL_ADDRESS = "snomsa2301@gmail.com"
-EMAIL_PASSWORD = "reignmusimhi0524"
+data = {
+    "Employee ID": ["001", "002", "003", "004", "005"],
+    "Name": ["Nomsa Sibanda", "Welma Kayanga", "Tafadzwa Kanhohodza", "Kirsty Matyukira", "Lorraine Thom"],
+    "Email": ["snomsa2301@gmail.com", "welmakayanga7@gmail.com", "kanhohodza5369@gmail.com", "kirstyservie03@gmail.com", "lorrainethom93@gmail.com"],
+    "Basic Salary": [400, 400, 400, 400, 400],
+    "Allowances": [150, 80, 58, 92, 68],
+    "Taxi Deduction": [20, 22, 25, 20, 18],
+    "NSSA Deduction": [18, 18, 20, 18, 19],
+    "Bank Acount": [1234567890, 9876543210, 1234567890, 1234567890, 1234567890],
+}
 
-# Load Excel file
-try:
-    df = pd.read_excel('payslip employees.xlsx', header=0)  # Ensure the first row is treated as header
-    print("Excel file loaded successfully.")
-except Exception as e:
-    print(f"Error loading Excel file: {e}")
-    exit(1)
 
-# Print original column names to check for issues
-print("Original columns:", df.columns)
+df = pd.DataFrame(data)
 
-# Clean the column names (strip spaces and lowercase them)
-df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
-print("Cleaned columns:", df.columns)
+sender_email = "starlisy7@gmail.com"
+sender_password = "eoji olom dxjn duuc" 
 
-# Check for missing data
-required_columns = ['first_name', 'last_name', 'email', 'position', 'basic_salary', 'allowances', 'deductions']
-missing_data = df[required_columns].isnull().any(axis=1)
 
-if missing_data.any():
-    print("Warning: There are missing values in the data.")
-    print(df[missing_data])
+for index, row in df.iterrows():
+    employee_id = row['Employee ID']
+    name = row['Name']
+    email = row['Email']
+    basic_salary = row['Basic Salary']
+    allowances = row['Allowances']
+    taxi_deduction = row['Taxi Deduction']
+    nssa_deduction = row['NSSA Deduction']
+    bank_account = row['Bank Acount']
 
-# Ensure numeric columns are properly converted
-df['basic_salary'] = pd.to_numeric(df['basic_salary'], errors='coerce')
-df['allowances'] = pd.to_numeric(df['allowances'], errors='coerce')
-df['deductions'] = pd.to_numeric(df['deductions'], errors='coerce')
+   
+    net_salary = basic_salary + allowances - taxi_deduction - nssa_deduction
 
-# Generate PDF
-def create_payslip(emp):
+    
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Payslip", ln=True, align='C')
+    pdf.ln(10)
+    pdf.cell(200, 10, txt=f"Employee ID: {employee_id}", ln=True)
+    pdf.cell(200, 10, txt=f"Name: {name}", ln=True)
+    pdf.cell(200, 10, txt=f"Email: {email}", ln=True)
+    pdf.cell(200, 10, txt=f"Bank Account: {bank_account}", ln=True)
+    pdf.cell(200, 10, txt=f"Basic Salary: ${basic_salary}", ln=True)
+    pdf.cell(200, 10, txt=f"Allowances: ${allowances}", ln=True)
+    pdf.cell(200, 10, txt=f"Taxi Deduction: ${taxi_deduction}", ln=True)
+    pdf.cell(200, 10, txt=f"NSSA Deduction: ${nssa_deduction}", ln=True)
+    pdf.cell(200, 10, txt=f"Net Salary: ${net_salary}", ln=True)
+
+   
+    pdf_filename = f"Payslip_{employee_id}.pdf"
+    pdf.output(pdf_filename)
+
+   
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = email
+    msg['Subject'] = f"Payslip for {name}"
+
+   
+    body = f"""
+    Dear {name},
+
+    Please find attached your payslip for this month.
+
+    Best regards,
+One Century 
+    """
+    msg.attach(MIMEText(body, 'plain'))
+
+    with open(pdf_filename, "rb") as attachment:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(attachment.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename={pdf_filename}')
+        msg.attach(part)
+
     try:
-        net_salary = emp["basic_salary"] + emp["allowances"] - emp["deductions"]
-        filename = f"{emp['first_name']}_Payslip.pdf"
-
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-
-        pdf.cell(200, 10, f"Payslip for {emp['first_name']} {emp['last_name']}", ln=True)
-        pdf.cell(200, 10, f"Pay Period: {emp['pay_period']}", ln=True)
-        pdf.cell(200, 10, f"Position: {emp['position']}", ln=True)
-        pdf.cell(200, 10, f"Basic Salary: ${emp['basic_salary']}", ln=True)
-        pdf.cell(200, 10, f"Allowances: ${emp['allowances']}", ln=True)
-        pdf.cell(200, 10, f"Deductions: ${emp['deductions']}", ln=True)
-        pdf.cell(200, 10, f"Net Salary: ${net_salary}", ln=True)
-
-        pdf.output(filename)
-        print(f"PDF Created: {filename}")
-        return filename
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, email, msg.as_string())
+        server.quit()
+        print(f"Email sent to {email} with payslip attached.")
     except Exception as e:
-        print(f"Error creating payslip for {emp['first_name']}: {e}")
-        return None
+        print(f"Failed to send email to {email}. Error: {e}")
 
-# Send Email
-def send_email(emp, filename):
-    try:
-        if not filename:
-            print("No file to send")
-            return
-        msg = EmailMessage()
-        msg["Subject"] = "Your Payslip"
-        msg["From"] = EMAIL_ADDRESS
-        msg["To"] = emp["email"]
-        msg.set_content(f"Hello {emp['first_name']},\n\nAttached is your payslip for {emp['pay_period']}.")
-
-        with open(filename, "rb") as f:
-            msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=filename)
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            smtp.send_message(msg)
-            print(f"Sent email to {emp['email']}")
-    except Exception as e:
-        print(f"Error sending email to {emp['email']}: {e}")
-
-# Process each employee
-for _, emp in df.iterrows():
-    payslip_file = create_payslip(emp)
-    if payslip_file:
-        send_email(emp, payslip_file)
-        os.remove(payslip_file)  # optional, delete PDF after sending email
-        print(f"Sent payslip to {emp['email']}")
-    else:
-        print(f"Failed to create payslip for {emp['first_name']}")
+   
+    print(f"Payslip sent to {name} ({email})")
+    print("Enjoy your day!")
